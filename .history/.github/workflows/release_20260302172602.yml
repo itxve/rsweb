@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  PROJECT_NAME: rsweb
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: rsweb-linux
+            binary: rsweb
+          - os: windows-latest
+            artifact: rsweb-windows
+            binary: rsweb.exe
+          - os: macos-latest
+            artifact: rsweb-macos
+            binary: rsweb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build Web
+        run: |
+          cd web
+          npm i
+          npm run build
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: target/release/${{ matrix.binary }}
+
+  release:
+    name: Create Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build] # 等待所有构建任务完成
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须赋予写入内容的权限才能创建 Release
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/ # 下载到 artifacts 目录下
+          pattern: rsweb-* # 匹配所有以 rsweb- 开头的构件
+          merge-multiple: true # 将多个构件合并到同一目录
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            Changelog:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*

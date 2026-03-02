@@ -1,0 +1,20 @@
+[package]
+name = "rsweb"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+# HTTP server (gateway) — replaces raw TCP for proper HTTP/1.1 compliance
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
+tower = { version = "0.5", default-features = false }
+tower-http = { version = "0.6", default-features = false, features = ["limit", "timeout"] }
+http-body-util = "0.1"
+
+# Embed frontend assets into binary (web dashboard)
+rust-embed = "8.1"
+mime_guess = "2"

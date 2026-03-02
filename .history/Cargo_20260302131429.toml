@@ -1,0 +1,34 @@
+[package]
+name = "rsweb"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# CLI - minimal and fast
+clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
+
+# Async runtime - feature-optimized for size
+tokio = { version = "1.42", default-features = false, features = ["rt-multi-thread", "macros", "time", "net", "io-util", "sync", "process", "io-std", "fs", "signal"] }
+tokio-util = { version = "0.7", default-features = false }
+tokio-stream = { version = "0.1.18", default-features = false, features = ["fs", "sync"] }
+# Serialization
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
+serde_ignored = "0.1"
+# HTTP server (gateway) — replaces raw TCP for proper HTTP/1.1 compliance
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
+tower = { version = "0.5", default-features = false }
+tower-http = { version = "0.6", default-features = false, features = ["limit", "timeout"] }
+http-body-util = "0.1"
+
+# Embed frontend assets into binary (web dashboard)
+rust-embed = "8.1"
+mime_guess = "2"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
