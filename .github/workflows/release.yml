@@ -19,7 +19,7 @@ jobs:
             binary: rsweb.exe
           - os: macos-latest
             artifact: rsweb-macos
-            binary: rsweb.macos
+            binary: rsweb
 
     steps:
       - name: Checkout
@@ -38,8 +38,19 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly # cargo-multivers 需要 nightly
+
+      - name: Build with cargo-multivers (macOS only)
+        if: matrix.os == 'macos-latest'
+        uses: ronnychevalier/cargo-multivers@main
+        with:
+          target: x86_64-apple-darwin,aarch64-apple-darwin
+          profile: release
 
       - name: Build
+        if: matrix.os != 'macos-latest'
+
         run: cargo build --release
 
       - name: Upload binary
