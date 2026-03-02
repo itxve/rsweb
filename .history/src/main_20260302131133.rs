@@ -1,9 +1,0 @@
-use anyhow::Result;
-
-mod gateway;
-
-#[tokio::main]
-#[allow(clippy::too_many_lines)]
-async fn main() -> Result<()> {
-    gateway::run_gateway(&host, port, config).await
-}
