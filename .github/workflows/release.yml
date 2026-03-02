@@ -16,15 +16,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: rsweb-linux-x86_64
-            binary: rsweb-linux-x86_64
+            artifact: rsweb-linux
+            binary: rsweb
           - os: windows-latest
-            artifact: rsweb-windows-x86_64
-            binary: rsweb-windows-x86_64.exe
+            artifact: rsweb-windows
+            binary: rsweb.exe
           - os: macos-latest
-            artifact: rsweb-macos-universal
-            binary: rsweb-macos-universal
-            # macOS 不指定单个target，而是构建通用二进制
+            artifact: rsweb-macos
+            binary: rsweb-universal
 
     steps:
       - name: Checkout
@@ -44,53 +43,70 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-apple-darwin,aarch64-apple-darwin # 为macOS安装两个目标
+          # 为macOS安装两个目标架构
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
 
-      - name: Add Rust targets for macOS universal build
-        if: matrix.os == 'macos-latest'
+      - name: Build for platform
         run: |
-          rustup target add x86_64-apple-darwin
-          rustup target add aarch64-apple-darwin
-
-      - name: Build (Linux/Windows)
-        if: matrix.os != 'macos-latest'
-        run: |
-          cargo build --release --target ${{ matrix.target }}
-          # 重命名文件
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/${{ matrix.target }}/release/${{ env.CARGO_BINARY_NAME }}.exe target/${{ matrix.target }}/release/${{ matrix.binary }}
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            # macOS: 构建通用二进制
+            echo "Building macOS universal binary..."
+            
+            # 添加目标架构
+            rustup target add x86_64-apple-darwin
+            rustup target add aarch64-apple-darwin
+            
+            # 构建 Intel 版本
+            echo "Building Intel (x86_64) version..."
+            cargo build --release --target x86_64-apple-darwin
+            
+            # 构建 Apple Silicon 版本
+            echo "Building Apple Silicon (aarch64) version..."
+            cargo build --release --target aarch64-apple-darwin
+            
+            # 合并为通用二进制
+            echo "Creating universal binary with lipo..."
+            lipo -create \
+              -output target/release/${{ env.CARGO_BINARY_NAME }}-universal \
+              target/x86_64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }} \
+              target/aarch64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }}
+            
+            # 验证构建结果
+            echo "Universal binary created:"
+            file target/release/${{ env.CARGO_BINARY_NAME }}-universal
+            echo "Architectures:"
+            lipo -archs target/release/${{ env.CARGO_BINARY_NAME }}-universal
           else
-            cp target/${{ matrix.target }}/release/${{ env.CARGO_BINARY_NAME }} target/${{ matrix.target }}/release/${{ matrix.binary }}
+            # Linux/Windows: 普通构建
+            cargo build --release
           fi
 
-      - name: Build macOS Universal Binary
-        if: matrix.os == 'macos-latest'
+      - name: Rename binary for upload
         run: |
-          # 1. 分别构建两个架构
-          echo "Building for x86_64..."
-          cargo build --release --target x86_64-apple-darwin
-
-          echo "Building for aarch64..."
-          cargo build --release --target aarch64-apple-darwin
-
-          # 2. 创建通用二进制
-          echo "Creating universal binary with lipo..."
-          lipo -create \
-            -output target/release/${{ matrix.binary }} \
-            target/x86_64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }} \
-            target/aarch64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }}
-
-          # 3. 验证构建结果
-          echo "Verifying universal binary..."
-          file target/release/${{ matrix.binary }}
-          lipo -archs target/release/${{ matrix.binary }}
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            # Windows: 确保是 .exe 文件
+            cp target/release/${{ env.CARGO_BINARY_NAME }}.exe target/release/${{ matrix.binary }}
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            # macOS: 通用二进制已构建为 -universal 后缀
+            # 确保文件存在
+            if [ -f "target/release/${{ env.CARGO_BINARY_NAME }}-universal" ]; then
+              echo "Found universal binary, renaming..."
+              cp target/release/${{ env.CARGO_BINARY_NAME }}-universal target/release/${{ matrix.binary }}
+            else
+              echo "Error: Universal binary not found!"
+              ls -la target/release/
+              exit 1
+            fi
+          else
+            # Linux: 直接复制
+            cp target/release/${{ env.CARGO_BINARY_NAME }} target/release/${{ matrix.binary }}
+          fi
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: |
-            ${{ fromJSON('{"windows-latest": "target/x86_64-pc-windows-msvc/release/", "ubuntu-latest": "target/x86_64-unknown-linux-gnu/release/", "macos-latest": "target/release/"}')[matrix.os] }}${{ matrix.binary }}
+          path: target/release/${{ matrix.binary }}
 
   release:
     name: Create Release
@@ -108,18 +124,46 @@ jobs:
           merge-multiple: true
 
       - name: Display structure of downloaded files
-        run: ls -R artifacts/
+        run: |
+          echo "Artifacts directory structure:"
+          ls -la artifacts/
+          echo ""
+          echo "File details:"
+          for file in artifacts/*; do
+            if [ -f "$file" ]; then
+              echo "File: $file"
+              if [[ "$file" == *.exe ]]; then
+                echo "  Type: Windows executable"
+              elif file "$file" | grep -q "Mach-O.*universal"; then
+                echo "  Type: macOS universal binary (Intel + Apple Silicon)"
+              elif file "$file" | grep -q "Mach-O"; then
+                echo "  Type: macOS binary"
+              elif file "$file" | grep -q "ELF"; then
+                echo "  Type: Linux ELF binary"
+              fi
+              ls -lh "$file"
+              echo ""
+            fi
+          done
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
           body: |
-            ## Release ${{ github.ref_name }}
+            # Release ${{ github.ref_name }}
 
-            **macOS 注意**: 此版本包含通用二进制，支持 Intel (x86_64) 和 Apple Silicon (arm64) 芯片。
+            ## 文件说明
 
-            Changelog:
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | Linux | `rsweb` | Linux 64位二进制文件 |
+            | Windows | `rsweb.exe` | Windows 64位可执行文件 |
+            | macOS | `rsweb-universal` | 通用二进制，支持 Intel 和 Apple Silicon 芯片 |
+
+            **注意**: macOS 版本是通用二进制，同时支持 Intel 和 Apple Silicon 芯片。
+
+            ## 更新内容
             ${{ github.event.head_commit.message }}
           draft: false
           prerelease: false
