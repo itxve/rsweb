@@ -18,11 +18,9 @@ jobs:
           - os: ubuntu-latest
             artifact: rsweb-linux-x86_64
             binary: rsweb-linux-x86_64
-            target: x86_64-unknown-linux-gnu
           - os: windows-latest
             artifact: rsweb-windows-x86_64
             binary: rsweb-windows-x86_64.exe
-            target: x86_64-pc-windows-msvc
           - os: macos-latest
             artifact: rsweb-macos-universal
             binary: rsweb-macos-universal
