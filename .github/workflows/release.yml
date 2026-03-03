@@ -43,10 +43,28 @@ jobs:
 
       - name: Build with cargo-multivers (macOS only)
         if: matrix.os == 'macos-latest'
-        uses: ronnychevalier/cargo-multivers@main
-        with:
-          target: x86_64-apple-darwin,aarch64-apple-darwin
-          profile: release
+        run: |
+          # macOS 通用二进制构建
+           echo "Building macOS universal binary..."
+           
+           # 添加两个目标架构
+           rustup target add x86_64-apple-darwin
+           rustup target add aarch64-apple-darwin
+           
+           # 分别构建两个架构
+           cargo build --release --target x86_64-apple-darwin
+           cargo build --release --target aarch64-apple-darwin
+           
+           # 使用 lipo 合并为通用二进制
+           lipo -create \
+             -output target/release/${{ env.CARGO_BINARY_NAME }} \
+             target/x86_64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }} \
+             target/aarch64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }}
+           
+           # 验证构建结果
+           echo "Universal binary created:"
+           file target/release/${{ env.CARGO_BINARY_NAME }}
+           lipo -archs target/release/${{ env.CARGO_BINARY_NAME }}
 
       - name: Build
         if: matrix.os != 'macos-latest'
