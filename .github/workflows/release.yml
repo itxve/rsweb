@@ -16,9 +16,9 @@ jobs:
           - os: ubuntu-latest
             artifact: rsweb-linux
             binary: rsweb
-          # - os: windows-latest
-          #   artifact: rsweb-windows
-          #   binary: rsweb.exe
+          - os: windows-latest
+            artifact: rsweb-windows
+            binary: rsweb.exe
           - os: macos-latest
             artifact: rsweb-macos
             binary: rsweb-universal
@@ -55,7 +55,6 @@ jobs:
             lipo -create -output target/release/${{ matrix.binary }} \
               target/x86_64-apple-darwin/release/${{ env.PROJECT_NAME }} \
               target/aarch64-apple-darwin/release/${{ env.PROJECT_NAME }}
-            ls -R target/ 
             echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
           else
             cargo build --release
