@@ -46,7 +46,7 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             cargo install cargo-lipo
-            cargo lipo --release
+            cargo cargo-lipo --release
             echo "upload_path=target/universal/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
           else
             cargo build --release
