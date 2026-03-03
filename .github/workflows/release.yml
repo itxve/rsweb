@@ -40,11 +40,10 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly # cargo-multivers 需要 nightly
 
       - name: Build binary
         id: build-result
+        shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             # 添加目标并构建通用二进制
@@ -56,6 +55,7 @@ jobs:
               target/x86_64-apple-darwin/release/${{ env.PROJECT_NAME }} \
               target/aarch64-apple-darwin/release/${{ env.PROJECT_NAME }}
             echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
+
           else
             cargo build --release
             echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
