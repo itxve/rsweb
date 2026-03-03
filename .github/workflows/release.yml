@@ -14,9 +14,9 @@ jobs:
           - os: ubuntu-latest
             artifact: rsweb-linux
             binary: rsweb
-          - os: windows-latest
-            artifact: rsweb-windows
-            binary: rsweb.exe
+          # - os: windows-latest
+          #   artifact: rsweb-windows
+          #   binary: rsweb.exe
           - os: macos-latest
             artifact: rsweb-macos
             binary: rsweb-universal
@@ -45,7 +45,7 @@ jobs:
         id: build-result
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            cargo install lipo
+            cargo install cargo-lipo
             cargo lipo --release
             echo "upload_path=target/universal/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
           else
