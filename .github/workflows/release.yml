@@ -59,14 +59,14 @@ jobs:
            
            # 使用 lipo 合并为通用二进制
            lipo -create \
-             -output target/release/${{ env.CARGO_BINARY_NAME }} \
+             -output target/release/${{ env.CARGO_BINARY_NAME }}-macos \
              target/x86_64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }} \
              target/aarch64-apple-darwin/release/${{ env.CARGO_BINARY_NAME }}
            
            # 验证构建结果
-           echo "Universal binary created:"
-           file target/release/${{ env.CARGO_BINARY_NAME }}
-           lipo -archs target/release/${{ env.CARGO_BINARY_NAME }}
+            # echo "Universal binary created:"
+            # file target/release/${{ env.CARGO_BINARY_NAME }}
+            # lipo -archs target/release/${{ env.CARGO_BINARY_NAME }}
 
       - name: Build
         if: matrix.os != 'macos-latest'
