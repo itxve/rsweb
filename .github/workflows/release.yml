@@ -55,6 +55,7 @@ jobs:
             lipo -create -output target/release/${{ matrix.binary }} \
               target/x86_64-apple-darwin/release/${{ env.PROJECT_NAME }} \
               target/aarch64-apple-darwin/release/${{ env.PROJECT_NAME }}
+            ls -R target/ 
             echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
           else
             cargo build --release
