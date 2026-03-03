@@ -1,4 +1,4 @@
-name: Release
+name: Universal Rust Binary Release
 
 on:
   push:
@@ -13,15 +13,15 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   artifact: rsweb-linux
-          #   binary: rsweb
+          - os: ubuntu-latest
+            artifact: rsweb-linux
+            binary: rsweb
           - os: windows-latest
             artifact: rsweb-windows
             binary: rsweb.exe
-          # - os: macos-latest
-          #   artifact: rsweb-macos
-          #   binary: rsweb-universal
+          - os: macos-latest
+            artifact: rsweb-macos
+            binary: rsweb-universal
 
     steps:
       - name: Checkout
