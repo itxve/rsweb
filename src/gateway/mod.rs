@@ -10,8 +10,6 @@ use axum::{
     Router,
 };
 
-use tracing::info;
-
 use std::net::SocketAddr;
 use std::time::Duration;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -37,7 +35,7 @@ pub async fn run_gateway(host: &str, port: u16) -> Result<()> {
     // Build router with middleware
     let app = Router::new()
         // ── Existing routes ──
-        .route("/health", get(handle_health))
+        .route("/api/health", get(handle_health))
         // ── SSE event stream ──
         // .route("/api/events", get(sse::handle_sse_events))
         // ── WebSocket agent chat ──

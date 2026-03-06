@@ -1,8 +1,16 @@
+use std::{
+    fs::{self, File},
+    io::{BufRead, BufReader},
+    process::{Command, Stdio},
+};
+
 use anyhow::Result;
 use clap::Parser;
+
 use tracing::{info, Level};
 
 mod gateway;
+mod sidecar;
 
 // 命令行参数结构体
 #[derive(Parser, Debug)]
@@ -13,11 +21,11 @@ Examples:
   rsweb --host 0.0.0.0   # bind to all interfaces")]
 struct Gateway {
     /// 服务器绑定的IP地址
-    #[arg(short, long, default_value = "0.0.0.0")]
+    #[arg(long, default_value = "0.0.0.0")]
     host: String,
 
     /// 服务器监听的端口
-    #[arg(short, long, default_value_t = 43218)]
+    #[arg(short, long, default_value_t = 41218)]
     port: u16,
 
     /// 日志级别 (trace, debug, info, warn, error)

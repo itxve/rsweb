@@ -10,7 +10,8 @@ use rust_embed::Embed;
 
 #[derive(Embed)]
 #[folder = "web/dist/"]
-struct WebAssets;
+pub struct WebAssets;
+
 
 /// Serve static files from `/_app/*` path
 pub async fn handle_static(uri: Uri) -> impl IntoResponse {
