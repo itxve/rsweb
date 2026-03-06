@@ -16,6 +16,12 @@ fn main() -> io::Result<()> {
 
     let source_target_bin = Path::new("sidecar/").join(target.clone());
 
+    // 确保目标目录存在
+    let target_dir = Path::new("bin");
+    if !target_dir.exists() {
+        fs::create_dir(target_dir)?;
+    }
+
     // 检查源目录是否存在
     if !source_target_bin.exists() || !source_target_bin.is_dir() {
         println!(
@@ -25,12 +31,6 @@ fn main() -> io::Result<()> {
         );
         println!("cargo:warning=将不复制任何 sidecar 文件");
         return Ok(());
-    }
-
-    // 确保目标目录存在
-    let target_dir = Path::new("bin");
-    if !target_dir.exists() {
-        fs::create_dir(target_dir)?;
     }
 
     copy(source_target_bin, "bin", &options).unwrap();
