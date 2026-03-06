@@ -5,6 +5,10 @@ use std::{env, fs, io, path::Path};
 // 用于实现 sidecar
 
 fn main() -> io::Result<()> {
+    sidecar_run()
+}
+
+fn sidecar_run() -> io::Result<()> {
     // 文件变更触发build
     println!("cargo:rerun-if-changed=config.toml");
     println!("cargo:rerun-if-changed=sidecar/");
@@ -34,6 +38,5 @@ fn main() -> io::Result<()> {
     }
 
     copy(source_target_bin, "bin", &options).unwrap();
-
     Ok(())
 }
