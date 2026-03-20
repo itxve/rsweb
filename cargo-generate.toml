@@ -1,3 +1,12 @@
 [template]
-
-
+# 排除不需要包含在模板产物中的目录和文件
+exclude = [
+    "target",
+    "web/*",
+    "bin",
+    "*.pid",
+    "*.out",
+    "*.err",
+    ".history",
+    ".DS_Store"
+]
