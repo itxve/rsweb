@@ -2,8 +2,6 @@
 # 排除不需要包含在模板产物中的目录和文件
 exclude = [
     "target",
-    "web/node_modules",
-    "web/dist",
     "bin",
     "*.pid",
     "*.out",
@@ -12,9 +10,3 @@ exclude = [
     ".DS_Store"
 ]
 
-# 跳过变量替换的文件
-# 这些文件包含 GitHub Actions 的 ${{ }} 语法，与 cargo-generate 的 {{ }} 冲突。
-# 我们通过在文件中使用 Liquid 的 {% raw %} 标签来转义冲突。
-skip = [
-    "Cargo.lock"
-]
