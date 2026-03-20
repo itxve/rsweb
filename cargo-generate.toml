@@ -2,6 +2,7 @@
 # 排除不需要包含在模板产物中的目录和文件
 exclude = [
     "target",
+    "web",
     "bin",
     "*.pid",
     "*.out",
@@ -12,4 +13,4 @@ exclude = [
 
 
 [placeholders]
-project_name = { prompt = "Enter project name", default = "my_project", type = "string" }
+project_name = { prompt = "Enter project name", default = "rsweb", type = "string" }
