@@ -5,31 +5,27 @@ on:
     tags:
       - "v*"
 
+env:
+  PROJECT_NAME: { { project_name } }
 jobs:
   build:
-    name: Build for ${{ matrix.job.os }}
-    runs-on: ${{ matrix.job.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        job:
+        include:
           - os: ubuntu-latest
-            artifact: linux
+            artifact: {{project_name}}-linux
+            binary: {{project_name}}
           - os: windows-latest
-            artifact: windows
+            artifact: {{project_name}}-windows
+            binary: {{project_name}}.exe
           - os: macos-latest
-            artifact: macos
+            artifact: {{project_name}}-macos
+            binary: {{project_name}}-universal
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Get Project Name
-        id: project
-        shell: bash
-        run: |
-          # 从 Cargo.toml 提取项目名称
-          NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-          echo "name=$NAME" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,6 +42,8 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Build Web
         run: |
@@ -55,56 +53,59 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.job.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
 
       - name: Build binary
         id: build-result
         shell: bash
         run: |
-          PROJECT_NAME=${{ steps.project.outputs.name }}
-
-          if [ "${{ matrix.job.os }}" = "macos-latest" ]; then
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            # 构建通用二进制 (Universal Binary)
             cargo build --release --target x86_64-apple-darwin
             cargo build --release --target aarch64-apple-darwin
             mkdir -p target/release
-            lipo -create -output target/release/$PROJECT_NAME-universal \
-              target/x86_64-apple-darwin/release/$PROJECT_NAME \
-              target/aarch64-apple-darwin/release/$PROJECT_NAME
-            echo "upload_path=target/release/$PROJECT_NAME-universal" >> $GITHUB_OUTPUT
+            lipo -create -output target/release/${{ matrix.binary }} \
+              target/x86_64-apple-darwin/release/${{ env.PROJECT_NAME }} \
+              target/aarch64-apple-darwin/release/${{ env.PROJECT_NAME }}
+            echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
+
           else
             cargo build --release
-            if [ "${{ matrix.job.os }}" = "windows-latest" ]; then
-              echo "upload_path=target/release/$PROJECT_NAME.exe" >> $GITHUB_OUTPUT
-            else
-              echo "upload_path=target/release/$PROJECT_NAME" >> $GITHUB_OUTPUT
-            fi
+            echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.project.outputs.name }}-${{ matrix.job.artifact }}
+          name: ${{ matrix.artifact }}
           path: ${{ steps.build-result.outputs.upload_path }}
           if-no-files-found: error
 
   release:
     name: Create Release
-    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build] # 等待所有构建任务完成
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # 必须赋予写入内容的权限才能创建 Release
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
-          merge-multiple: true
+          path: artifacts/ # 下载到 artifacts 目录下
+          pattern: {{project_name}}-* # 匹配所有以 {{project_name}}- 开头的构件
+          merge-multiple: true # 将多个构件合并到同一目录
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
-          files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Changelog:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*

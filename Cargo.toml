@@ -57,7 +57,7 @@ inherits = "release"
 # Use: cargo build --profile release-fast
 
 [[bin]]
-name = "{{project-name}}"
+name = "{{project_name}}"
 path = "src/main.rs"
 
 [build-dependencies]
