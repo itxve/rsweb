@@ -2,7 +2,6 @@
 # 排除不需要包含在模板产物中的目录和文件
 exclude = [
     "target",
-    "sidecar",
     "bin",
     "*.pid",
     "*.out",
@@ -11,3 +10,6 @@ exclude = [
     ".DS_Store"
 ]
 
+
+[placeholders]
+project_name = { prompt = "Enter project name", default = "my_project", type = "string" }
