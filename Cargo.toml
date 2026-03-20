@@ -1,7 +1,7 @@
 [package]
 build = "build.rs"
 edition = "2021"
-name = "rsweb"
+name = "{{project-name}}"
 version = "0.1.0"
 
 [dependencies]
@@ -57,7 +57,7 @@ inherits = "release"
 # Use: cargo build --profile release-fast
 
 [[bin]]
-name = "rsweb"
+name = "{{project-name}}"
 path = "src/main.rs"
 
 [build-dependencies]

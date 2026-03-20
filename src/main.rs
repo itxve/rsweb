@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use tracing::info;
+use tracing::{error, info};
 
 mod daemon;
 mod gateway;
@@ -12,8 +12,8 @@ mod utils;
 #[command(author, version, about, long_about = None)]
 #[command(long_about = "\
 Examples:
-  rsweb -p 8080          # listen on port 8080
-  rsweb --host 0.0.0.0   # bind to all interfaces")]
+  {{project-name}} -p 8080          # listen on port 8080
+  {{project-name}} --host 0.0.0.0   # bind to all interfaces")]
 pub struct Gateway {
     /// 服务器绑定的IP地址
     #[arg(long, default_value = "0.0.0.0")]
@@ -36,8 +36,8 @@ pub struct Gateway {
     daemon: bool,
 
     /// 守护进程模式下的 PID 文件路径
-    #[arg(long, default_value = "/tmp/com.rsweb/rsweb.pid")]
-    pid_file: String,
+    #[arg(long)]
+    pid_file: Option<String>,
 
     /// 停止正在运行的守护进程
     #[arg(short, long)]
@@ -47,6 +47,11 @@ pub struct Gateway {
 fn main() -> Result<()> {
     // 解析命令行参数
     let args = Gateway::parse();
+
+    // 动态生成默认 PID 路径
+    let pkg_name = env!("CARGO_PKG_NAME");
+    let default_pid_file = format!("/tmp/com.{}/{}.pid", pkg_name, pkg_name);
+    let pid_file = args.pid_file.unwrap_or(default_pid_file);
 
     // 设置日志级别
     let log_level = if args.verbose {
@@ -58,13 +63,13 @@ fn main() -> Result<()> {
     // 1. 处理停止守护进程
     if args.stop {
         utils::init_tracing(log_level);
-        return daemon::stop_daemon(&args.pid_file);
+        return daemon::stop_daemon(&pid_file);
     }
 
     // 2. 处理守护进程模式
     if args.daemon {
         // 在 daemonize 之前不初始化 tracing，避免 fork 后 FD 1/2 指向错误或 FD 泄露
-        daemon::start_daemon(&args.pid_file)?;
+        daemon::start_daemon(&pid_file)?;
     }
 
     // 在 fork (如果有) 之后初始化 tracing，确保日志输出到正确的地方 (stdout 或重定向的文件)

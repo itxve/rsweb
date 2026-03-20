@@ -29,8 +29,8 @@ pub fn start_daemon(pid_file: &str) -> Result<()> {
         let dir = std::path::Path::new(pid_file)
             .parent()
             .unwrap_or(std::path::Path::new("/tmp"));
-        let stdout = File::create(dir.join("rsweb.out"))?;
-        let stderr = File::create(dir.join("rsweb.err"))?;
+        let stdout = File::create(dir.join(format!("{}.out", env!("CARGO_PKG_NAME"))))?;
+        let stderr = File::create(dir.join(format!("{}.err", env!("CARGO_PKG_NAME"))))?;
 
         let daemonize = Daemonize::new()
             .pid_file(pid_file) // 指定 PID 文件
@@ -52,10 +52,8 @@ pub fn start_daemon(pid_file: &str) -> Result<()> {
 
     #[cfg(windows)]
     {
-        // Windows 下暂不支持 daemonize，建议直接安装为系统服务
-        eprintln!(
-            "Daemon mode is not supported on Windows. Please use --install to run as a service."
-        );
+        // Windows 下暂不支持 daemonize
+        eprintln!("Daemon mode is not supported on Windows.");
         std::process::exit(1);
     }
 }

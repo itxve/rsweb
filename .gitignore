@@ -1,4 +1,10 @@
 /target
-dist
+/bin
+/web/dist
+/web/node_modules
+.DS_Store
+*.pid
+*.out
+*.err
+.env
 .history
-bin
