@@ -618,7 +618,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rsweb"
+name = "{{project_name}}"
 version = "0.1.0"
 dependencies = [
  "anyhow",
