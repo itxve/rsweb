@@ -12,8 +12,8 @@ mod utils;
 #[command(author, version, about, long_about = None)]
 #[command(long_about = "\
 Examples:
-  {{project-name}} -p 8080          # listen on port 8080
-  {{project-name}} --host 0.0.0.0   # bind to all interfaces")]
+  {{project_name}} -p 8080          # listen on port 8080
+  {{project_name}} --host 0.0.0.0   # bind to all interfaces")]
 pub struct Gateway {
     /// 服务器绑定的IP地址
     #[arg(long, default_value = "0.0.0.0")]

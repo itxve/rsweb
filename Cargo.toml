@@ -1,8 +1,8 @@
 [package]
 build = "build.rs"
 edition = "2021"
-name = "{{project-name}}"
-version = "0.1.0"
+name = "{{project_name}}"
+version = "0.1.1"
 
 [dependencies]
 tracing = "0.1"
@@ -57,7 +57,7 @@ inherits = "release"
 # Use: cargo build --profile release-fast
 
 [[bin]]
-name = "{{project-name}}"
+name = "{{project_name}}"
 path = "src/main.rs"
 
 [build-dependencies]

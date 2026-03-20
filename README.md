@@ -1,6 +1,6 @@
-# {{project-name}}: 高性能 Rust Web 服务模板
+# {{project_name}}: 高性能 Rust Web 服务模板
 
-[![使用此模板](https://img.shields.io/badge/-%E4%BD%BF%E7%94%A8%E6%AD%A4%E6%A8%A1%E6%9D%BF-brightgreen?style=for-the-badge&logo=github)](https://github.com/new?template_name={{project-name}}&template_owner=你的用户名)
+[![使用此模板](https://img.shields.io/badge/-%E4%BD%BF%E7%94%A8%E6%AD%A4%E6%A8%A1%E6%9D%BF-brightgreen?style=for-the-badge&logo=github)](https://github.com/new?template_name={{project_name}}&template_owner=你的用户名)
 
 这是一个生产级的 Rust Web 服务模板，旨在提供开箱即用的高性能后端、自动化构建流程和优雅的跨平台部署方案。
 
@@ -15,7 +15,7 @@
 cargo install cargo-generate
 
 # 2. 使用模板生成你的新项目
-cargo generate --git https://github.com/你的用户名/{{project-name}}
+cargo generate --git https://github.com/你的用户名/{{project_name}}
 # 按照提示输入你的项目名称，例如：my-awesome-app
 
 # 3. 进入项目并开始开发
@@ -52,9 +52,9 @@ cargo run
 
 2.  **后端开发**:
     - **运行开发服务器**: `cargo run`
-    - **后台运行**: `./target/debug/{{project-name}} --daemon`
-    - **停止后台进程**: `./target/debug/{{project-name}} --stop`
-    - **查看后台日志**: `tail -f /tmp/com.{{project-name}}/{{project-name}}.out`
+    - **后台运行**: `./target/debug/{{project_name}} --daemon`
+    - **停止后台进程**: `./target/debug/{{project_name}} --stop`
+    - **查看后台日志**: `tail -f /tmp/com.{{project_name}}/{{project_name}}.out`
     - **编译发布版本**: `cargo build --release`
 
 ---

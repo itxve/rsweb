@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  PROJECT_NAME: "{% endraw %}{{project-name}}{% raw %}"
+  PROJECT_NAME: "{% endraw %}{{project_name}}{% raw %}"
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -14,14 +14,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: "{% endraw %}{{project-name}}{% raw %}-linux"
-            binary: "{% endraw %}{{project-name}}{% raw %}"
+            artifact: "{% endraw %}{{project_name}}{% raw %}-linux"
+            binary: "{% endraw %}{{project_name}}{% raw %}"
           - os: windows-latest
-            artifact: "{% endraw %}{{project-name}}{% raw %}-windows"
-            binary: "{% endraw %}{{project-name}}{% raw %}.exe"
+            artifact: "{% endraw %}{{project_name}}{% raw %}-windows"
+            binary: "{% endraw %}{{project_name}}{% raw %}.exe"
           - os: macos-latest
-            artifact: "{% endraw %}{{project-name}}{% raw %}-macos"
-            binary: "{% endraw %}{{project-name}}{% raw %}-universal"
+            artifact: "{% endraw %}{{project_name}}{% raw %}-macos"
+            binary: "{% endraw %}{{project_name}}{% raw %}-universal"
 
     steps:
       - name: Checkout
@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
       - name: Cache Cargo
@@ -99,7 +99,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/ # 下载到 artifacts 目录下
-          pattern: "{% endraw %}{{project-name}}{% raw %}-*" # 匹配所有以项目名开头的构件
+          pattern: "{% endraw %}{{project_name}}{% raw %}-*" # 匹配所有以项目名开头的构件
           merge-multiple: true # 将多个构件合并到同一目录
 
       - name: Display structure of downloaded files
