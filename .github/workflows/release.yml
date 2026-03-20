@@ -1,4 +1,4 @@
-name: Universal Rust Binary Release
+{% raw %}name: Universal Rust Binary Release
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  PROJECT_NAME: { { project_name } }
+  PROJECT_NAME: "{% endraw %}{{project_name}}{% raw %}"
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -14,14 +14,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: {{project_name}}-linux
-            binary: {{project_name}}
+            artifact: "{% endraw %}{{project_name}}{% raw %}-linux"
+            binary: "{% endraw %}{{project_name}}{% raw %}"
           - os: windows-latest
-            artifact: {{project_name}}-windows
-            binary: {{project_name}}.exe
+            artifact: "{% endraw %}{{project_name}}{% raw %}-windows"
+            binary: "{% endraw %}{{project_name}}{% raw %}.exe"
           - os: macos-latest
-            artifact: {{project_name}}-macos
-            binary: {{project_name}}-universal
+            artifact: "{% endraw %}{{project_name}}{% raw %}-macos"
+            binary: "{% endraw %}{{project_name}}{% raw %}-universal"
 
     steps:
       - name: Checkout
@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
       - name: Cache Cargo
@@ -53,6 +53,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
 
       - name: Build binary
         id: build-result
@@ -70,7 +72,12 @@ jobs:
 
           else
             cargo build --release
-            echo "upload_path=target/release/${{ matrix.binary }}" >> $GITHUB_OUTPUT
+            # 处理 Windows 扩展名问题
+            if [ "${{ matrix.os }}" = "windows-latest" ]; then
+              echo "upload_path=target/release/${{ env.PROJECT_NAME }}.exe" >> $GITHUB_OUTPUT
+            else
+              echo "upload_path=target/release/${{ env.PROJECT_NAME }}" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Upload Artifact
@@ -92,7 +99,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/ # 下载到 artifacts 目录下
-          pattern: {{project_name}}-* # 匹配所有以 {{project_name}}- 开头的构件
+          pattern: "{% endraw %}{{project_name}}{% raw %}-*" # 匹配所有以项目名开头的构件
           merge-multiple: true # 将多个构件合并到同一目录
 
       - name: Display structure of downloaded files
@@ -109,3 +116,4 @@ jobs:
           prerelease: false
           files: |
             artifacts/**/*
+{% endraw %}
