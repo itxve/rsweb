@@ -1,16 +1,11 @@
-use std::{
-    fs::{self, File},
-    io::{BufRead, BufReader},
-    process::{Command, Stdio},
-};
-
 use anyhow::Result;
 use clap::Parser;
+use tracing::info;
 
-use tracing::{info, Level};
-
+mod daemon;
 mod gateway;
 mod sidecar;
+mod utils;
 
 // 命令行参数结构体
 #[derive(Parser, Debug)]
@@ -19,7 +14,7 @@ mod sidecar;
 Examples:
   rsweb -p 8080          # listen on port 8080
   rsweb --host 0.0.0.0   # bind to all interfaces")]
-struct Gateway {
+pub struct Gateway {
     /// 服务器绑定的IP地址
     #[arg(long, default_value = "0.0.0.0")]
     host: String,
@@ -35,10 +30,21 @@ struct Gateway {
     /// 启用详细日志输出
     #[arg(short, long)]
     verbose: bool,
+
+    /// 以守护进程模式运行
+    #[arg(short, long)]
+    daemon: bool,
+
+    /// 守护进程模式下的 PID 文件路径
+    #[arg(long, default_value = "/tmp/com.rsweb/rsweb.pid")]
+    pid_file: String,
+
+    /// 停止正在运行的守护进程
+    #[arg(short, long)]
+    stop: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     // 解析命令行参数
     let args = Gateway::parse();
 
@@ -49,63 +55,39 @@ async fn main() -> Result<()> {
         &args.log_level
     };
 
-    init_tracing(log_level);
-
-    info!("🚀 Starting Listen on http://{}:{}", args.host, args.port);
-
-    gateway::run_gateway(&args.host, args.port).await
-}
-
-// 初始化 tracing 的函数
-fn init_tracing(log_level: &str) {
-    // 方法1: 最简单的初始化 - 通常这就够了
-    tracing_subscriber::fmt()
-        .with_max_level(level_from_str(log_level))
-        .with_target(true) // 显示日志目标
-        .with_thread_ids(true) // 显示线程ID
-        .with_file(true) // 显示文件名
-        .with_line_number(true) // 显示行号
-        .init();
-
-    // 或者使用方法2: 更灵活的配置
-    /*
-    let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(level_from_str(log_level))
-        .with_target(true)
-        .with_thread_ids(true)
-        .with_file(true)
-        .with_line_number(true)
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Failed to set global default subscriber");
-    */
-
-    // 或者使用方法3: 支持环境变量
-    /*
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new(log_level))
-        )
-        .with_target(true)
-        .with_thread_ids(true)
-        .with_file(true)
-        .with_line_number(true)
-        .init();
-    */
-
-    info!("✅ Tracing initialized with level: {}", log_level);
-}
-
-// 将字符串转换为 Level
-fn level_from_str(level: &str) -> Level {
-    match level.to_lowercase().as_str() {
-        "trace" => Level::TRACE,
-        "debug" => Level::DEBUG,
-        "info" => Level::INFO,
-        "warn" => Level::WARN,
-        "error" => Level::ERROR,
-        _ => Level::INFO,
+    // 1. 处理停止守护进程
+    if args.stop {
+        utils::init_tracing(log_level);
+        return daemon::stop_daemon(&args.pid_file);
     }
+
+    // 2. 处理守护进程模式
+    if args.daemon {
+        // 在 daemonize 之前不初始化 tracing，避免 fork 后 FD 1/2 指向错误或 FD 泄露
+        daemon::start_daemon(&args.pid_file)?;
+    }
+
+    // 在 fork (如果有) 之后初始化 tracing，确保日志输出到正确的地方 (stdout 或重定向的文件)
+    utils::init_tracing(log_level);
+
+    // 3. 初始化并运行 Tokio 运行时
+    // 在 fork (daemonize) 之后启动运行时，避免 "Bad file descriptor" 错误
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+
+    rt.block_on(async {
+        // 如果需要启动 Sidecar，可以在这里启动
+        /*
+        let sidecar = sidecar::Sidecar::new("my-sidecar-bin")?;
+        tokio::spawn(async move {
+            if let Err(e) = sidecar.run_and_log(&["--arg1"]).await {
+                error!("Sidecar error: {}", e);
+            }
+        });
+        */
+
+        info!("🚀 Starting Listen on http://{}:{}", args.host, args.port);
+        gateway::run_gateway(&args.host, args.port).await
+    })
 }

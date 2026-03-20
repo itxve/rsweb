@@ -1,12 +1,10 @@
 pub mod static_files;
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 use axum::{
-    body::Bytes,
-    extract::{ConnectInfo, Query, State},
-    http::{header, HeaderMap, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Json},
-    routing::{delete, get, post, put},
+    routing::get,
     Router,
 };
 

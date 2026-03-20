@@ -37,8 +37,11 @@ thiserror = "2.0"
 # bin 临时写入
 tempfile = "3"
 
-#  fs_extra
+# fs_extra
 fs_extra = "1.3.0"
+
+[target.'cfg(unix)'.dependencies]
+daemonize = "0.5"
 
 [profile.release]
 codegen-units = 1 # Serialized codegen for low-memory devices (e.g., Raspberry Pi 3 with 1GB RAM)
