@@ -2,6 +2,7 @@
 # 排除不需要包含在模板产物中的目录和文件
 exclude = [
     "target",
+    "sidecar",
     "bin",
     "*.pid",
     "*.out",
