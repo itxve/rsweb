@@ -14,7 +14,7 @@ clap_complete = "4.5"
 
 # Async runtime - feature-optimized for size
 tokio = {version = "1.42", default-features = false, features = ["rt-multi-thread", "macros", "time", "net", "io-util", "sync", "process", "io-std", "fs", "signal"]}
-tokio-stream = {version = "0.1.18", default-features = false, features = ["fs", "sync"]}
+tokio-stream = {version = "0.1.18", default-features = false, features = ["fs", "sync", "time"]}
 tokio-util = {version = "0.7", default-features = false}
 # Serialization
 serde = {version = "1.0", default-features = false, features = ["derive"]}
@@ -25,6 +25,8 @@ axum = {version = "0.8", default-features = false, features = ["http1", "json", 
 http-body-util = "0.1"
 tower = {version = "0.5", default-features = false}
 tower-http = {version = "0.6", default-features = false, features = ["limit", "timeout"]}
+
+futures = "0.3"
 
 # Embed frontend assets into binary (web dashboard)
 mime_guess = "2"

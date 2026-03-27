@@ -3,6 +3,7 @@ use clap::Parser;
 use tracing::{error, info};
 
 mod daemon;
+mod error;
 mod gateway;
 mod sidecar;
 mod utils;
