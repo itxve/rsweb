@@ -38,9 +38,42 @@ cargo run
 ```text
 .
 ├── src/                # 后端的核心逻辑，模块清晰
+│   ├── gateway/        # Web 网关，包含路由、API、状态管理等
+│   │   ├── base.rs     # 基础工具：统一响应格式 (ApiResponse) 和错误处理 (AppError)
+│   │   ├── api.rs      # API 业务逻辑实现
+│   │   └── ...
 ├── web/                # 属于前端的自由天地，只需构建至 dist/
 ├── sidecar/            # 存放辅助程序的小仓库
 └── build.rs            # 默默工作的资源打包脚本
 ```
+
+---
+
+## 🛠️ API 接口说明
+
+- **GET `/api/health`**: 检查服务的健康状态。
+- **GET `/api/id`**: 获取当前计数值。
+- **GET `/api/id_add`**: 计数值加一。
+- **GET `/api/events`**: 获取 SSE 事件流。
+- **WS `/ws/chat`**: WebSocket 聊天代理。
+
+---
+
+## 💎 开发指南
+
+### 统一响应 (base.rs)
+
+项目在 `src/gateway/base.rs` 中定义了统一的响应结构 `ApiResponse<T>`，确保所有 API 返回一致的 JSON 格式：
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": { ... }
+}
+```
+
+- **AppError**: 集中式错误处理，自动将 Rust 错误转换为对应的 HTTP 状态码和 JSON 响应。
+- **ToRes**: 便捷的 Trait，支持通过 `.ok()` 快速构造成功响应。
 
 希望这个模板能让您的 Rust 开发过程变得更加轻松和愉悦。
