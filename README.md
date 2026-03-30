@@ -74,6 +74,6 @@ cargo run
 ```
 
 - **AppError**: 集中式错误处理，自动将 Rust 错误转换为对应的 HTTP 状态码和 JSON 响应。
-- **ToRes**: 便捷的 Trait，支持通过 `.ok()` 快速构造成功响应。
+- **ToApiResult**: 便捷的 Trait，支持通过 `.ok()` 快速构造成功响应。
 
 希望这个模板能让您的 Rust 开发过程变得更加轻松和愉悦。
