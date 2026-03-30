@@ -12,6 +12,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::get,
+    routing::post,
     Router,
 };
 
@@ -86,6 +87,7 @@ pub async fn run_gateway(host: &str, port: u16) -> Result<()> {
         // ── API routes ──
         .route("/api/id", get(api::get_id))
         .route("/api/id_add", get(api::id_add))
+        .route("/api/handle_test_json", post(api::handle_test_json))
         // ── API 404 catch-all ──
         .route(
             "/api/{*path}",

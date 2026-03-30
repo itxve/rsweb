@@ -1,13 +1,12 @@
-use serde_json::error;
-use thiserror::Error;
-
 use axum::extract::rejection::JsonRejection;
 use axum::extract::FromRequest;
 use axum::response::{IntoResponse, Json};
+use serde::de::DeserializeOwned;
 use serde::Serialize;
+use thiserror::Error;
 
 // =============================================================================
-// 统一响应结构
+// 统一响应 JSON 结构 (最终发给前端)
 // =============================================================================
 
 #[derive(Serialize)]
@@ -18,20 +17,32 @@ pub struct ApiResponse<T> {
 }
 
 impl<T> ApiResponse<T> {
-    pub fn success(data: T) -> Self {
-        Self {
-            code: 0,
-            msg: "success".to_string(),
-            data: Some(data),
-        }
-    }
-
     pub fn error(code: i32, msg: String) -> Self {
         Self {
             code,
             msg,
             data: None,
         }
+    }
+}
+
+// =============================================================================
+// 响应包装器 (用于 Handler 返回成功数据)
+// =============================================================================
+
+pub struct Reply<T>(pub T, pub i32);
+
+impl<T> IntoResponse for Reply<T>
+where
+    T: Serialize,
+{
+    fn into_response(self) -> axum::response::Response {
+        let body = ApiResponse {
+            code: self.1,
+            msg: "success".to_string(),
+            data: Some(self.0),
+        };
+        axum::Json(body).into_response()
     }
 }
 
@@ -71,29 +82,32 @@ impl IntoResponse for AppError {
     }
 }
 
-pub type AppResult<T> = Result<T, AppError>;
-pub type Res<T> = AppResult<AppJson<T>>;
+// Handler 的标准返回类型
+pub type ApiResult<T> = Result<Reply<T>, AppError>;
 
 // =============================================================================
-// 自定义 Json 提取器
+// 输入提取器 (仅用于从 Request 提取 JSON)
 // =============================================================================
 
-#[derive(FromRequest)]
-#[from_request(via(axum::Json), rejection(AppError))]
 pub struct AppJson<T>(pub T);
 
-impl<T> From<T> for AppJson<T> {
-    fn from(t: T) -> Self {
-        AppJson(t)
-    }
-}
+impl<T, S> FromRequest<S> for AppJson<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = AppError;
 
-pub trait ToRes: Sized {
-    fn ok(self) -> Res<Self> {
-        Ok(AppJson(self))
+    async fn from_request(
+        req: axum::http::Request<axum::body::Body>,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        match axum::Json::<T>::from_request(req, state).await {
+            Ok(axum::Json(data)) => Ok(AppJson(data)),
+            Err(rejection) => Err(AppError::from(rejection)),
+        }
     }
 }
-impl<T: Serialize> ToRes for T {}
 
 impl From<JsonRejection> for AppError {
     fn from(rejection: JsonRejection) -> Self {
@@ -101,11 +115,17 @@ impl From<JsonRejection> for AppError {
     }
 }
 
-impl<T> IntoResponse for AppJson<T>
-where
-    T: Serialize,
-{
-    fn into_response(self) -> axum::response::Response {
-        axum::Json(ApiResponse::success(self.0)).into_response()
+// =============================================================================
+// 便捷转换 Trait
+// =============================================================================
+
+pub trait ToApiResult: Sized {
+    fn ok(self) -> ApiResult<Self> {
+        Ok(Reply(self, 0))
+    }
+    fn with_code(self, code: i32) -> ApiResult<Self> {
+        Ok(Reply(self, code))
     }
 }
+
+impl<T: Serialize> ToApiResult for T {}
