@@ -128,8 +128,8 @@ mod tests {
     #[tokio::test]
     async fn test_sidecar() -> Result<()> {
         // 注意：这里需要 bin/ 目录下确实有文件才能运行成功
-        // 示例：Sidecar::new("{{project_name}}")?
-        let sidecar = Sidecar::new("{{project_name}}")?;
+        // 示例：Sidecar::new("gic")?
+        let sidecar = Sidecar::new("gic")?;
         sidecar.run_and_log(&["--help"]).await?;
         Ok(())
     }

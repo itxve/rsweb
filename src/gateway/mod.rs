@@ -1,23 +1,23 @@
 pub mod api;
+
 pub mod base;
+
 pub mod sse;
 pub mod state;
-pub mod static_files;
+pub mod user;
 pub mod ws;
 
-use crate::{error::AppError, gateway::state::IndexState};
+use crate::gateway::{base::AppError, state::IndexState};
 use anyhow::Result;
 
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
-    routing::get,
-    routing::post,
+    routing::{get, post},
     Router,
 };
 
 use axum::{
-    body::Body,
     extract::Request,
     middleware::{self, Next},
     response::Response,
@@ -26,6 +26,9 @@ use std::net::SocketAddr;
 use std::time::Duration;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::timeout::TimeoutLayer;
+
+use base::middleware::*;
+use base::static_files;
 
 /// 统一错误响应中间件
 /// 确保所有 4xx/5xx 响应都符合统一的 JSON 格式
@@ -74,28 +77,45 @@ pub const REQUEST_TIMEOUT_SECS: u64 = 30;
 pub async fn run_gateway(host: &str, port: u16) -> Result<()> {
     let addr: SocketAddr = format!("{host}:{port}").parse()?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
-
     let state = IndexState::new();
-    // Build router with middleware
-    let app = Router::new()
-        // ── API routes ──
-        .route("/api/health", get(api::handle_health))
-        // ── SSE event stream ──
-        .route("/api/events", get(sse::handle_sse_events))
-        // ── WebSocket agent chat ──
-        .route("/ws/chat", get(ws::handle_ws_chat))
-        // ── API routes ──
-        .route("/api/id", get(api::get_id))
-        .route("/api/id_add", get(api::id_add))
-        .route("/api/handle_test_json", post(api::handle_test_json))
-        // ── API 404 catch-all ──
+    let validator = user::MyValidator;
+
+    // ── Public API routes ──
+    let public_routes = Router::new()
+        .route("/health", get(api::handle_health))
+        .route("/events", get(sse::handle_sse_events))
+        .route("/user/login", post(user::handle_login));
+
+    // ── Protected API routes ──
+    let api_routes = Router::new()
+        .route("/id", get(api::get_id))
+        .route("/id_add", get(api::id_add))
+        .route("/user", get(api::handle_user_info))
+        .route("/test/json", post(api::handle_test_json))
         .route(
-            "/api/{*path}",
+            "/{*path}",
             get(|| async { AppError::NotFound("API route not found".into()) }),
         )
+        .layer(auth::AuthLayer::new(validator.clone()));
+
+    // ── WebSocket agent chat (also protected) ──
+    let ws_routes = Router::new()
+        .route("/chat", get(ws::handle_ws_chat))
+        .layer(auth::AuthLayer::new(validator));
+
+    // Build router with middleware
+    let app = Router::new()
+        // ── Public routes ──
+        .nest("/api", public_routes)
+        // nest() 的关键特性
+        // 自动加前缀
+        // 中间件会影响所有子路由！
+        .nest("/api", api_routes)
+        .nest("/ws", ws_routes)
         // ── Static assets (web dashboard) ──
         .route("/_app/{*path}", get(static_files::handle_static))
         // ── Layers ──
+        .layer(log::LoggingLayer)
         .layer(middleware::from_fn(error_unify_middleware))
         .layer(RequestBodyLimitLayer::new(MAX_BODY_SIZE))
         .layer(TimeoutLayer::with_status_code(

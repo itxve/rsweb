@@ -1,9 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
-use tracing::{error, info};
+use tracing::info;
 
 mod daemon;
-mod error;
 mod gateway;
 mod sidecar;
 mod utils;
@@ -13,8 +12,8 @@ mod utils;
 #[command(author, version, about, long_about = None)]
 #[command(long_about = "\
 Examples:
-  {{project_name}} -p 8080          # listen on port 8080
-  {{project_name}} --host 0.0.0.0   # bind to all interfaces")]
+  gic -p 8080          # listen on port 8080
+  gic --host 0.0.0.0   # bind to all interfaces")]
 pub struct Gateway {
     /// 服务器绑定的IP地址
     #[arg(long, default_value = "0.0.0.0")]

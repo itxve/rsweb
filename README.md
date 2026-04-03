@@ -6,11 +6,12 @@
 
 ## ✨ 核心亮点
 
-- **从容的部署体验**: 通过 GitHub Actions 自动化流程，为您默默打理好各平台的编译与发布工作。
-- **静默运行的守护者**: 内置简洁的守护进程管理（`--daemon` / `--stop`），让服务在后台安稳运行，不打扰您的终端。
-- **灵活的前端集成**: `web/dist` 下的内容会被打包到最终的二进制文件中，您可以自由挑选喜欢的前端工具，而无需担心后端的限制。
-- **清晰的代码职责**: 模块化的结构设计，每个部分都各司其职，方便您根据直觉找到并修改代码。
-- **优雅的自我适配**: 所有的路径和名称都与 `Cargo.toml` 保持同步，当您想要给项目起个新名字时，它会体贴地自动更新所有配置。
+- **统一的 API 返回规范**: 所有接口围绕 `code / msg / data` 结构组织，便于前后端约定统一的成功与失败语义。
+- **清晰的网关分层**: `gateway` 模块按路由入口、基础能力、中间件、状态、用户、SSE、WebSocket 等职责拆分，便于持续演进。
+- **内置认证与日志中间件**: 基于 Tower/Axum 中间件机制实现权限校验与请求日志，保证业务 Handler 尽量保持纯粹。
+- **静态资源内嵌分发**: `web/dist` 产物可直接嵌入二进制，通过 `/_app/*` 与 SPA fallback 提供前端静态资源。
+- **守护进程支持**: 提供 `--daemon` / `--stop` 能力，适合将服务以后台进程方式运行。
+- **Sidecar 运行能力**: 内置 sidecar 提取与执行逻辑，方便后续扩展辅助二进制工具。
 
 ---
 
@@ -33,37 +34,61 @@ cargo run
 
 ---
 
-## 📂 结构概览
+## 📂 当前项目结构
 
 ```text
 .
-├── src/                # 后端的核心逻辑，模块清晰
-│   ├── gateway/        # Web 网关，包含路由、API、状态管理等
-│   │   ├── base.rs     # 基础工具：统一响应格式 (ApiResponse) 和错误处理 (AppError)
-│   │   ├── api.rs      # API 业务逻辑实现
-│   │   └── ...
-├── web/                # 属于前端的自由天地，只需构建至 dist/
-├── sidecar/            # 存放辅助程序的小仓库
-└── build.rs            # 默默工作的资源打包脚本
+├── src/
+│   ├── main.rs                 # 程序入口，负责 CLI 解析、日志初始化、运行网关
+│   ├── daemon.rs               # 守护进程启动与停止逻辑
+│   ├── utils.rs                # tracing 等通用初始化工具
+│   ├── sidecar/
+│   │   └── mod.rs              # Sidecar 二进制提取、启动与日志转发
+│   └── gateway/
+│       ├── mod.rs              # 网关总装配：路由、状态、中间件、超时、体积限制、fallback
+│       ├── api.rs              # 业务接口 Handler
+│       ├── sse.rs              # SSE 心跳事件流
+│       ├── ws.rs               # WebSocket Echo 示例
+│       ├── state.rs            # 全局状态，目前为 IndexState
+│       ├── user/
+│       │   └── mod.rs          # 登录接口、用户提取器、Token 校验器
+│       └── base/
+│           ├── mod.rs          # 统一响应、错误类型、输入提取器、返回包装
+│           ├── static_files.rs # 嵌入式静态资源分发与 SPA fallback
+│           └── middleware/
+│               ├── mod.rs      # 中间件模块出口
+│               ├── auth.rs     # 认证中间件
+│               └── log.rs      # 日志中间件
+├── sidecar/
+│   └── README.md               # Sidecar 相关说明
+├── web/
+│   └── README.md               # 前端目录说明
+├── build.rs                    # 构建期资源处理
+└── Cargo.toml                  # Rust 依赖与构建配置
 ```
 
 ---
 
 ## 🛠️ API 接口说明
 
-- **GET `/api/health`**: 检查服务的健康状态。
+- **公开接口**
+- **GET `/api/health`**: 健康检查。
+- **GET `/api/events`**: SSE 心跳流。
+- **POST `/api/user/login`**: 用户登录，返回测试 token。
+- **受保护接口**
 - **GET `/api/id`**: 获取当前计数值。
 - **GET `/api/id_add`**: 计数值加一。
-- **GET `/api/events`**: 获取 SSE 事件流。
-- **WS `/ws/chat`**: WebSocket 聊天代理。
+- **GET `/api/user`**: 读取当前用户信息，依赖 `User` 提取器。
+- **POST `/api/test/json`**: 测试统一 JSON 提取器。
+- **WS `/ws/chat`**: WebSocket Echo 示例，使用独立路由组并套用认证中间件。
 
 ---
 
 ## 💎 开发指南
 
-### 统一响应 (base.rs)
+### 统一响应
 
-项目在 `src/gateway/base.rs` 中定义了统一的响应结构 `ApiResponse<T>`，确保所有 API 返回一致的 JSON 格式：
+项目在 `src/gateway/base/mod.rs` 中定义了统一的响应结构 `ApiResponse<T>`，确保所有 API 返回一致的 JSON 格式：
 
 ```json
 {
@@ -73,7 +98,15 @@ cargo run
 }
 ```
 
-- **AppError**: 集中式错误处理，自动将 Rust 错误转换为对应的 HTTP 状态码和 JSON 响应。
-- **ToApiResult**: 便捷的 Trait，支持通过 `.ok()` 快速构造成功响应。
+- **Reply / ApiResult**: Handler 成功返回值包装器，负责自动补齐成功响应格式。
+- **AppError**: 集中式错误处理，负责把业务错误映射为统一 JSON 响应。
+- **AppJson**: 自定义 JSON 提取器，保证请求体解析失败时也能走统一错误返回。
+- **ToApiResult**: 便捷 Trait，支持通过 `.ok()` 与 `.with_code()` 快速构造成功响应。
+
+### 路由组织
+
+- `src/gateway/mod.rs` 使用 `nest("/api", ...)` 区分公开接口与受保护接口。
+- 受保护的 API 与 WebSocket 路由会挂载认证中间件。
+- 静态文件通过 `/_app/*` 提供，其他页面请求会回落到 SPA 入口。
 
 希望这个模板能让您的 Rust 开发过程变得更加轻松和愉悦。

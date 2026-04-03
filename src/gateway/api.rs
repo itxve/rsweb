@@ -4,12 +4,18 @@ use serde::Deserialize;
 use crate::gateway::{
     base::{ApiResult, AppJson, ToApiResult},
     state::IndexState,
+    user::User,
 };
 
 #[derive(Deserialize)]
 pub struct TestJsonRequest {
     pub name: String,
     pub age: Option<u32>,
+}
+
+/// 测试 User 提取器
+pub async fn handle_user_info(user: User) -> ApiResult<serde_json::Value> {
+    serde_json::json!(user).ok()
 }
 
 /// 测试 AppJson 提取器

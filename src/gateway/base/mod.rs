@@ -1,3 +1,6 @@
+pub mod middleware;
+pub mod static_files;
+
 use axum::extract::rejection::JsonRejection;
 use axum::extract::FromRequest;
 use axum::response::{IntoResponse, Json};
@@ -11,13 +14,13 @@ use thiserror::Error;
 
 #[derive(Serialize)]
 pub struct ApiResponse<T> {
-    pub code: i32,
+    pub code: u16,
     pub msg: String,
     pub data: Option<T>,
 }
 
 impl<T> ApiResponse<T> {
-    pub fn error(code: i32, msg: String) -> Self {
+    pub fn error(code: u16, msg: String) -> Self {
         Self {
             code,
             msg,
@@ -30,7 +33,7 @@ impl<T> ApiResponse<T> {
 // 响应包装器 (用于 Handler 返回成功数据)
 // =============================================================================
 
-pub struct Reply<T>(pub T, pub i32);
+pub struct Reply<T>(pub T, pub u16);
 
 impl<T> IntoResponse for Reply<T>
 where
@@ -66,6 +69,9 @@ pub enum AppError {
 
     #[error("Conflict: {0}")]
     Conflict(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl IntoResponse for AppError {
@@ -76,6 +82,7 @@ impl IntoResponse for AppError {
             AppError::Internal(m) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, 500, m),
             AppError::Cancelled(m) => (axum::http::StatusCode::OK, 1, m),
             AppError::Conflict(m) => (axum::http::StatusCode::CONFLICT, 409, m),
+            AppError::Unauthorized(m) => (axum::http::StatusCode::UNAUTHORIZED, 401, m),
         };
 
         (status, Json(ApiResponse::<()>::error(code, msg))).into_response()
@@ -123,7 +130,7 @@ pub trait ToApiResult: Sized {
     fn ok(self) -> ApiResult<Self> {
         Ok(Reply(self, 0))
     }
-    fn with_code(self, code: i32) -> ApiResult<Self> {
+    fn with_code(self, code: u16) -> ApiResult<Self> {
         Ok(Reply(self, code))
     }
 }
