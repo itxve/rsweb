@@ -1,4 +1,4 @@
-# rsweb-template
+# rsaxum-web-template
 
 这是一个轻量、可靠的 Rust Web 基础模板，旨在为您提供一个舒适的起点，集成了实用的守护进程管理与嵌入式静态资源分发功能。
 
